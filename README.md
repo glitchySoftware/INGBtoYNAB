@@ -1,9 +1,10 @@
  INGBtoYNAB
 
- This tool can be used to convert Dutch ING transaction towards You Need a Budget (YNAB)
- The tool reads .csv files from ING and converts them to .csv files recognized by YNAB.
+ This tool can be used to convert Dutch ING transaction towards a format that can be handled by You Need a Budget (YNAB).
+ The GUI (based on TKinter) reads .csv files from a directory and converts them to .csv files recognized by YNAB.
 
  In addition, categories can be automatically extracted based on payee or memo (omschrijving/mededelingen).
+ A generic JSON (database.json) file is used to store payee/category information.
 
         Input Format:
         Datum,Naam / Omschrijving,Rekening,Tegenrekening,Code,Af Bij,Bedrag (EUR),MutatieSoort,Mededelingen
