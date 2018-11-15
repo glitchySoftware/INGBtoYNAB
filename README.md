@@ -1,4 +1,4 @@
- INGB to YNAB Converter
+ ING Bank to YNAB Converter
 
  This tool can be used to convert Dutch ING transaction towards a format that can be handled by You Need a Budget (YNAB).
  The GUI (based on TKinter) reads .csv files from a directory and converts them to .csv files recognized by YNAB.
