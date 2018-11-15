@@ -1,4 +1,3 @@
-
 import logging
 import csv
 import os
@@ -15,49 +14,107 @@ import tkinter as tk
 
 from main import *
 
-
 logger = logging.getLogger(__name__)
 
 
 class Application:
-    """ The main application class, here we initialize the main windows (MainUI and ConsoleUI)
+    """ The main application class, here we initialize the main LabelFrame windows (MainUI, SettingsUI and ConsoleUI)
     """
 
     def __init__(self, root):
         self.root = root
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
-
-        # Create the panes and frames
-        top_pane = ttk.PanedWindow(self.root, orient=HORIZONTAL)
-        top_pane.grid(row=0, column=0, sticky="nsew")
-
-        main_frame = ttk.Labelframe(top_pane, text="Settings")
-        main_frame.columnconfigure(1, weight=6)
-        main_frame.rowconfigure(0, weight=1)
-        top_pane.add(main_frame)
-
-        console_frame = ttk.Labelframe(top_pane, text="Console")
-        console_frame.columnconfigure(0, weight=1)
-        console_frame.rowconfigure(0, weight=1)
-        top_pane.add(console_frame)
-
-        # Initialize all frames
-        self.settings = MainUi(main_frame, self, self.root)
-        self.console = ConsoleUi(console_frame)
-
         self.root.protocol('WM_DELETE_WINDOW', self.quit)
         self.root.bind('<Control-q>', self.quit)
         self.root.title("INGtoYNAB Converter")
+
+        # The main notebook, each tab consists of one PanedWindow with mutiple Labelframe windiws
+        notebook = ttk.Notebook(self.root)
+        notebook.grid(column=1, row=1, columnspan=2)
+
+        # extend bindings to top level window allowing
+        #   CTRL+TAB - cycles thru tabs
+        #   SHIFT+CTRL+TAB - previous tab
+        #   ALT+K - select tab using mnemonic (K = underlined letter)
+        notebook.enable_traversal()
+
+        first_tab = ttk.PanedWindow(self.root, orient=VERTICAL)
+        first_tab.grid(row=0, column=0, sticky="nsew")
+
+        # Create the panes and frames
+        main_frame = ttk.Labelframe(first_tab, text="Info")
+        main_frame.columnconfigure(1, weight=1)
+        main_frame.rowconfigure(0, weight=1)
+        first_tab.add(main_frame)
+
+        settings_frame = ttk.Labelframe(first_tab, text="Settings")
+        settings_frame.columnconfigure(1, weight=1)
+        settings_frame.rowconfigure(0, weight=1)
+        first_tab.add(settings_frame)
+
+        console_frame = ttk.Labelframe(first_tab, text="Console")
+        console_frame.columnconfigure(0, weight=1)
+        console_frame.rowconfigure(0, weight=1)
+        first_tab.add(console_frame)
+
+        second_tab = ttk.PanedWindow(self.root, orient=VERTICAL)
+        second_tab.grid(row=0, column=0, sticky="nsew")
+
+        notebook.add(first_tab, text='Convert Transactions', underline=0, padding=2)
+        notebook.add(second_tab, text='Manage Payees/Categories', underline=0, padding=2)
+
+        # Initialize all frames
+        self.main = MainUi(main_frame)
+        self.settings = SettingsUi(settings_frame, self, self.root)
+        self.console = ConsoleUi(console_frame)
 
         signal.signal(signal.SIGINT, self.quit)
 
     def quit(self, *args):
         self.root.destroy()
 
-
 class MainUi:
-    """ The mainUI class, shown on the left side of the opening screen.
+
+    def __init__(self, frame):
+        self.frame = frame
+        # Initialize UI
+        self.initUI()
+        self.add_padding()
+
+    def initUI(self):
+
+        # Main text explaining how app works
+        text = """
+               Grabs ING .csv file(s) from a directory, converts this into a YNAB format and exports files.
+               Categories can be automatically extracted based on payee or memo (omschrijving/mededelingen).
+               Unknown payees or memos can be added to categories.
+               """
+        intro = ttk.Label(self.frame, text=text, wraplength=800)
+        intro.grid(column=0, columnspan=3, row=0, sticky=(W, E))
+
+        text = """
+               Input Format:
+               Datum,Naam / Omschrijving,Rekening,Tegenrekening,Code,Af Bij,Bedrag (EUR),MutatieSoort,Mededelingen
+               """
+
+        input_format = ttk.Label(self.frame, text=text, wraplength=800)
+        input_format.grid(column=0, columnspan=3, row=1, sticky=(W, E))
+
+        text = """
+               Output Format:
+               Date,Payee,Category,Memo,Outflow,Inflow
+               07/25/10,Sample Payee,(Master)Category,Sample Memo for an outflow,100.00,
+               """
+        output_format = ttk.Label(self.frame, text=text, wraplength=800)
+        output_format.grid(column=0, columnspan=3, row=2, sticky=(W, E))
+
+    def add_padding(self):
+        for child in self.frame.winfo_children():
+            child.grid_configure(padx=1, pady=1)
+
+class SettingsUi:
+    """ The mainUI class, shown on the top the opening screen, shows info about the app.
     """
 
     def __init__(self, frame, parent, root):
@@ -89,31 +146,6 @@ class MainUi:
 
         ttk.Button(self.frame, text="Run", command=lambda: self.scanAndConvert(self.input_path.get(), self.output_path.get())).grid(column=0, row=5, sticky=W)
         ttk.Button(self.frame, text="Close", command=lambda: self.parent.quit()).grid(column=1, row=5, sticky=W)
-
-        # Main text explaining how app works
-        text = """
-        Grabs ING .csv file(s) from a directory, converts this into a YNAB format and exports files.
-        Categories can be automatically extracted based on payee or memo (omschrijving/mededelingen).
-        Unknown payees or memos can be added to categories.
-        """
-        intro = ttk.Label(self.frame, text=text, wraplength=800)
-        intro.grid(column=0, columnspan=3, row=0, sticky=(W, E))
-
-        text = """
-        Input Format:
-        Datum,Naam / Omschrijving,Rekening,Tegenrekening,Code,Af Bij,Bedrag (EUR),MutatieSoort,Mededelingen
-        """
-
-        input_format = ttk.Label(self.frame, text=text, wraplength=800)
-        input_format.grid(column=0, columnspan=3, row=1, sticky=(W, E))
-
-        text = """
-        Output Format:
-        Date,Payee,Category,Memo,Outflow,Inflow
-        07/25/10,Sample Payee,(Master)Category,Sample Memo for an outflow,100.00,
-        """
-        output_format = ttk.Label(self.frame, text=text, wraplength=800)
-        output_format.grid(column=0, columnspan=3, row=2, sticky=(W, E))
 
     def add_padding(self):
         for child in self.frame.winfo_children():
@@ -167,29 +199,34 @@ class MainUi:
 
                         row = Transaction(row[0], row[1], str(row[8]), str(row[5]), str(row[6]))
 
-                        if row.category == '':
-                            logtext = 'Category not found.. ' + str(row.category) + '. Please add category to continue.'
-                            LogWindow.submit_message('INFO', logtext)
-
-                            dialog = AddCategoryDialog(self.root, prompt="Add category")
-                            dialog.populate_transaction(row.__dict__.values())
-                            result = dialog.show()
-                            if result == 1:
-                                logtext = 'Category or payee added.'
+                        # Use payee or memo to search for the category, if not retunn empty
+                        category = row.searchPayees()
+                        if not category:
+                            category = row.searchMemos()
+                            if not category:
+                                logtext = 'Category not found for payee. Please add category to continue.'
                                 LogWindow.submit_message('INFO', logtext)
-                            else:
-                                if result == 0:
-                                    logtext = 'Transaction skipped.'
-                                    LogWindow.submit_message('INFO', logtext)
-                                    break
 
-                                else:
+                                dialog = AddCategoryDialog(self.root, prompt="Add category")
+                                dialog.populate_transaction(row.__dict__.values())
+                                result = dialog.show()
+
+                                if result == 'Cancelled':
                                     logtext = 'Processing has been stopped.'
                                     LogWindow.submit_message('INFO', logtext)
                                     return
+                                else:
+                                    if result == 'Skipped':
+                                        logtext = 'Transaction skipped.'
+                                        LogWindow.submit_message('INFO', logtext)
+                                        continue
 
-                        if row.category != '' or result:
-                            logtext = 'Category found.' + 'Payee: ' + row.payee + ' Category: ' + row.category
+                                    else:
+                                        logtext = 'Category or payee added.'
+                                        LogWindow.submit_message('INFO', logtext)
+                                        category = result
+                        if category:
+                            logtext = 'Category found.' + 'Payee: ' + row.payee + ' Category: ' + category
                             LogWindow.submit_message('INFO', logtext)
 
                             if row.type == 'Af':
@@ -201,12 +238,12 @@ class MainUi:
                             # 07/25/10,Sample Payee,,Sample Memo for an outflow,100.00,
                             # 07/26/10,Sample Payee 2,,Sample memo for an inflow,,500.003')
 
-                            output = row.date + ',' + str(row.payee) + ',' + row.category
+                            output = row.date + ',' + str(row.payee) + ',' + category
                             output = output + ',' + row.memo + type + str(row.amount)
                             print(output)
 
                             outputwriter.writerow(output.split(','))
-                            logtext = 'Transaction processed.' + 'Payee: ' + row.payee + ' Category: ' + row.category
+                            logtext = 'Transaction processed.' + 'Payee: ' + row.payee + ' Category: ' + category
                             LogWindow.submit_message('INFO', logtext)
 
                     # Close the file
@@ -233,6 +270,8 @@ class QueueHandler(logging.Handler):
 
 
 class LogWindow:
+    """Class that creates the logging console.
+    """
 
     def __init__(self, frame):
         self.frame = frame
@@ -337,10 +376,9 @@ class CategoryUi:
         self.category = ttk.Combobox(self.frame, values=categories)
         self.category.grid(column=1, row=3, columnspan=2, sticky=(W, E))
 
-
         ## buttons
         btn = {u"Save and continue": self.save_category, u"Skip": self.skip_category, u"Cancel Processing": self.cancel_process}
-        column = 0
+        column = -1
         for i, item in btn.items():
             column = column + 1
             ttk.Button(self.frame, text=u"%s" % i, command=item).grid(in_=self.frame, column=column, row=4)
@@ -351,7 +389,7 @@ class CategoryUi:
 
     def save_category(self):
         #Todo logging
-        if self.mastercat.get() == '' and self.mastercat.get() == '':
+        if self.mastercat.get() == '' and self.category.get() == '':
             messagebox.showerror(message='Master category and category not filled in.')
         else:
             if self.mastercat.get() == '':
@@ -360,16 +398,18 @@ class CategoryUi:
                 if self.category.get() == '':
                     messagebox.showerror(message='Category not filled in.')
                 else:
-                    self.parent.var.set(1)
-                    Category(self.category.get(), self.entry1.get(), self.entry2.get(), self.mastercat.get()).addCategory()
+                    self.parent.var.set(self.mastercat.get() + ': ' + self.category.get())
+                    # If a payee or memo is filled in, add category, otherwise just leave as is
+                    if self.entry1.get() or self.entry2.get():
+                        Category(self.category.get(), self.entry1.get(), self.entry2.get(), self.mastercat.get()).addCategory()
                     self.root.destroy()
 
     def skip_category(self):
-        self.parent.var.set(0)
+        self.parent.var.set('Skipped')
         self.root.destroy()
 
     def cancel_process(self):
-        self.parent.var.set(3)
+        self.parent.var.set('Cancelled')
         self.root.destroy()
 
 
@@ -420,7 +460,7 @@ class AddCategoryDialog:
         # Initalize
         self.transactions = TransactionUI(self.transaction_frame, self)
         self.category = CategoryUi(self, self.category_frame, self.popup)
-        self.var = tk.IntVar()
+        self.var = tk.StringVar()
 
     def show(self):
         self.parent.wait_window(self.popup)
@@ -441,9 +481,3 @@ class AddCategoryDialog:
 # todo: check if no payee memo is possible
 # TOdo: change text on frontpage
 
-
-#transaction = Category('Ola','Hello')
-#print(transaction.extractCategory())
-
-
-#scanAndConvert('/Users/Admin/Dropbox/Werk, Geldzaken & Recht/Boekhouding/InputCSV', '/Users/Admin/Dropbox/Werk, Geldzaken & Recht/Boekhouding/OutputCSV')
