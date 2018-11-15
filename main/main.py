@@ -78,7 +78,7 @@ class Category:
 
         if pos == '':
             # Open JSON file and add new master and category, save file again
-            add = {'Category': self.category, 'Master Category': self.master, 'Memos': [self.memo],'Payees': [self.payee]}
+            add = {'Category': self.category, 'Master Category': self.master, 'Memos': [self.memo], 'Payees': [self.payee]}
 
             data['categories'].append(add)
 
@@ -108,12 +108,6 @@ class Transaction:
         self.memo = memo
         self.type = type
         self.amount = float(amount.replace(',', '.'))
-        # Use payee or memo to search for the category, if not retunn empty
-        self.category = self.searchPayees()
-        if not self.category:
-            self.category = self.searchMemos()
-            if not self.category:
-                self.category = ''
 
     def searchPayees(self):
         # Open json database and search of any payee's can be found within the nested JSON structure
@@ -121,15 +115,13 @@ class Transaction:
 
         # Access data, search for payee regex in all payee elements
         for x in data['categories']:
-            print(x['Master Category'])
-
             searchterm = "|".join(x['Payees'])
-
-            regex = re.compile(searchterm, re.IGNORECASE)
-            result = regex.search(self.payee)
-            if result:
-                category = x['Master Category'] + ': ' + x['Category']
-                return category
+            if searchterm:
+                regex = re.compile(searchterm, re.IGNORECASE)
+                result = regex.search(self.payee)
+                if result:
+                    category = x['Master Category'] + ': ' + x['Category']
+                    return category
         else:
             return ''
 
@@ -139,20 +131,19 @@ class Transaction:
         for x in data['categories']:
 
             searchterm = "|".join(x['Memos'])
-            regex = re.compile(searchterm, re.IGNORECASE)
-            result = regex.search(self.memo)
-            if result:
-                category = x['Master Category'] + ': ' + x['Category']
-                return category
+            if searchterm:
+                regex = re.compile(searchterm, re.IGNORECASE)
+                result = regex.search(self.memo)
+                if result:
+                    category = x['Master Category'] + ': ' + x['Category']
+                    return category
         else:
             return ''
 
     def convertDate(self, date):
         regex = re.compile('\d\d\d\d\d\d\d\d')
         date = regex.search(date)
-        print('Original date: ' + str(date))
         date = datetime.datetime.strptime(date.group(0), '%Y%m%d').strftime('%d/%m/%y')
-        print('New date: ' + date)
         return date
 
 
